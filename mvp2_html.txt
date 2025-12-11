@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <title>MVP – نظام أمان لمرضى السكري</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- مكتبة الرسم البياني -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      background: #020617;
+      color: #f9fafb;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      padding: 16px;
+    }
+    .app {
+      width: 100%;
+      max-width: 420px;
+      background: #020617;
+      border-radius: 24px;
+      border: 1px solid #111827;
+      padding: 14px;
+      box-shadow: 0 24px 50px rgba(0,0,0,0.6);
+    }
+    .header {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 12px;
+      background: radial-gradient(circle at 30% 20%, #22c55e, #0ea5e9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+    .status-bar {
+      font-size: 11px;
+      color: #9ca3af;
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+    .card {
+      background: #0b1220;
+      border-radius: 18px;
+      padding: 14px;
+      border: 1px solid #1f2937;
+      margin-bottom: 10px;
+    }
+    h2 {
+      margin: 0 0 6px;
+      font-size: 14px;
+    }
+    p {
+      margin: 0 0 8px;
+      font-size: 11px;
+      color: #9ca3af;
+    }
+    label {
+      display: block;
+      font-size: 11px;
+      margin-bottom: 3px;
+      color: #9ca3af;
+    }
+    input {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 1px solid #1f2937;
+      background: #020617;
+      color: #f9fafb;
+      font-size: 12px;
+      margin-bottom: 8px;
+      outline: none;
+    }
+    input:focus {
+      border-color: #22c55e;
+      box-shadow: 0 0 0 1px rgba(34,197,94,0.4);
+    }
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    button {
+      border-radius: 999px;
+      border: none;
+      padding: 9px 14px;
+      font-size: 12px;
+      cursor: pointer;
+      background: linear-gradient(135deg, #22c55e, #0ea5e9);
+      color: #020617;
+      font-weight: 600;
+      width: 100%;
+      margin-top: 4px;
+    }
+    button:active { transform: scale(0.97); }
+    .screen { margin-top: 6px; }
+    #monitorScreen { display: none; }
+
+    .profile-line {
+      font-size: 11px;
+      color: #9ca3af;
+      margin-bottom: 6px;
+    }
+    .profile-line span {
+      display: inline-block;
+      margin-inline-end: 8px;
+    }
+
+    /* الشريط العلوي */
+    .green-header {
+      background: #4ade80;
+      color: #064e3b;
+      border-radius: 18px;
+      padding: 12px 14px;
+      margin-bottom: 10px;
+    }
+    .green-value {
+      font-size: 32px;
+      font-weight: 700;
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+    }
+    .green-unit {
+      font-size: 12px;
+    }
+    .green-status {
+      font-size: 11px;
+      margin-top: 4px;
+    }
+
+    /* الرسم البياني */
+    .chart-wrap {
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 10px;
+      margin-bottom: 10px;
+    }
+    .chart-wrap canvas {
+      width: 100% !important;
+      height: 210px !important;
+    }
+
+    .reading-box {
+      margin-top: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 8px;
+    }
+    .reading-main {
+      font-size: 24px;
+      font-weight: 700;
+    }
+    .reading-unit {
+      font-size: 11px;
+      color: #9ca3af;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      margin-top: 4px;
+    }
+    .pill span.icon {
+      font-size: 13px;
+    }
+    .pill-green {
+      background: rgba(34,197,94,0.18);
+      color: #bbf7d0;
+    }
+    .pill-orange {
+      background: rgba(249,115,22,0.18);
+      color: #fed7aa;
+    }
+    .pill-red {
+      background: rgba(239,68,68,0.22);
+      color: #fecaca;
+    }
+
+    .alert-box {
+      margin-top: 10px;
+      border-radius: 14px;
+      border: 1px solid transparent;
+      padding: 10px;
+      font-size: 11px;
+      display: none;
+    }
+    .alert-red {
+      border-color: rgba(239,68,68,0.8);
+      background: rgba(239,68,68,0.18);
+      color: #fecaca;
+    }
+    .alert-title {
+      font-weight: 600;
+      margin-bottom: 4px;
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .alert-title span.icon {
+      font-size: 16px;
+    }
+    .alert-note {
+      margin-top: 6px;
+      font-size: 10px;
+      opacity: 0.9;
+    }
+    .alert-actions {
+      margin-top: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-secondary {
+      background: #020617;
+      color: #f9fafb;
+      border: 1px solid #1f2937;
+      width: auto;
+      padding-inline: 10px;
+    }
+    .timer-circle {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      border: 2px solid #f97316;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 600;
+      color: #fed7aa;
+    }
+    .help-box {
+      margin-top: 8px;
+      border-radius: 12px;
+      border: 1px dashed rgba(148,163,184,0.8);
+      padding: 7px 9px;
+      font-size: 10px;
+      color: #9ca3af;
+      display: none;
+      background: transparent;
+    }
+    .footer-note {
+      margin-top: 8px;
+      font-size: 9px;
+      color: #9ca3af;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+<div class="app">
+  <div class="status-bar">
+    <span>نظام أمان لمرضى السكري</span>
+    <span>MVP</span>
+  </div>
+
+  <div class="header">
+    <div class="icon">🩺</div>
+    <div>
+      <div style="font-size:13px;font-weight:600;">متابعة السكر للطوارئ</div>
+      <div style="font-size:11px;color:#9ca3af;">نموذج أولي مبسّط لعرض الفكرة في الهاكاثون</div>
+    </div>
+  </div>
+
+  <!-- شاشة التسجيل -->
+  <div id="registerScreen" class="screen">
+    <div class="card">
+      <h2>تسجيل بيانات المريض</h2>
+      <p>هذه البيانات تُسجَّل مرة واحدة، ثم تبدأ شاشة المتابعة والتنبيه.</p>
+
+      <label>اسم المريض</label>
+      <input id="regName" placeholder="مثال: أحمد سعود العتيبي">
+
+      <div class="row">
+        <div>
+          <label>رقم الهوية</label>
+          <input id="regId" placeholder="1234567890">
+        </div>
+        <div>
+          <label>العمر</label>
+          <input id="regAge" type="number" placeholder="35">
+        </div>
+      </div>
+
+      <button id="startBtn">بدء المتابعة</button>
+    </div>
+
+    <div class="footer-note">
+      لو تشوفين هذه الشاشة فكل شيء شغال 👌  
+      (أي شاشة بيضاء سابقة كانت من ملفات قديمة).
+    </div>
+  </div>
+
+  <!-- شاشة المتابعة -->
+  <div id="monitorScreen" class="screen">
+    <div class="card">
+      <h2>واجهة المتابعة والتنبيه</h2>
+
+      <!-- الشريط العلوي -->
+      <div class="green-header" id="greenHeader">
+        <div class="green-value">
+          <span id="bigValue">—</span>
+          <span class="green-unit">mg/dL</span>
+        </div>
+        <div class="green-status" id="bigStatusText">
+          لم يتم إدخال قراءة حتى الآن.
+        </div>
+      </div>
+
+      <div class="profile-line">
+        <span id="pName"></span>
+        <span id="pId"></span>
+        <span id="pAge"></span>
+      </div>
+
+      <!-- الرسم البياني -->
+      <div class="chart-wrap">
+        <canvas id="glucoseChart"></canvas>
+      </div>
+
+      <div class="reading-box">
+        <div>
+          <div class="reading-main" id="readingValue">—</div>
+          <div class="reading-unit">mg/dL – قراءة السكر الحالية</div>
+          <div id="statusPill" class="pill" style="display:none;"></div>
+        </div>
+
+        <div style="width:50%;">
+          <label>إدخال أو تحديث القراءة</label>
+          <input id="glucoseInput" type="number" placeholder="مثال: 54 أو 85 أو 210">
+          <button id="updateBtn">تحديث القراءة</button>
+        </div>
+      </div>
+
+      <div id="alertBox" class="alert-box">
+        <div class="alert-title">
+          <span class="icon" id="alertIcon">⚠️</span>
+          <span id="alertTitle"></span>
+        </div>
+        <div id="alertBody"></div>
+
+        <div id="alertActions" class="alert-actions" style="display:none;">
+          <button id="okBtn" class="btn-secondary">فهمت / أنا بخير الآن</button>
+          <div id="timerCircle" class="timer-circle">60</div>
+        </div>
+
+        <div id="alertNote" class="alert-note" style="display:none;">
+          في حال لم يتم الضغط على (فهمت)، سيتم التواصل مع الجهات المختصة و الاتصال مع أقرب قريب، و مشاركة الموقع الجغرافي.
+        </div>
+      </div>
+
+      <div id="helpBox" class="help-box">
+        <!-- رسالة التصعيد الصفراء ستظهر هنا بعد انتهاء العدّاد -->
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>تجربة سريعة للنطاقات</h2>
+      <p>
+       القيم التالية:<br>
+        • ٨٥ → أخضر معتدل بدون تنبيه<br>
+        • ٦٣ → برتقالي آمن بدون تنبيه<br>
+        • ٥٨ → أحمر منخفض (رسالة فقط)<br>
+        • ٥٤ → أحمر منخفض جدًا مع عدّاد ٦٠ ثانية + تصعيد أصفر<br>
+        • ٢٢٠ → أحمر مرتفع (بدون عدّاد)<br>
+        • ٣٦٠ → أحمر مرتفع جدًا مع عدّاد ٦٠ ثانية + تصعيد أصفر
+      </p>
+    </div>
+
+    <div class="footer-note">
+      هذا النموذج للعرض في الهاكاثون فقط، ولا يُستخدم كأداة تشخيص أو علاج حقيقي.
+    </div>
+  </div>
+</div>
+
+<script>
+  // الشاشات
+  const registerScreen = document.getElementById("registerScreen");
+  const monitorScreen  = document.getElementById("monitorScreen");
+
+  // التسجيل
+  const regName = document.getElementById("regName");
+  const regId   = document.getElementById("regId");
+  const regAge  = document.getElementById("regAge");
+  const startBtn = document.getElementById("startBtn");
+
+  // بيانات المريض
+  const pName = document.getElementById("pName");
+  const pId   = document.getElementById("pId");
+  const pAge  = document.getElementById("pAge");
+
+  // القراءة
+  const readingValue = document.getElementById("readingValue");
+  const glucoseInput = document.getElementById("glucoseInput");
+  const updateBtn    = document.getElementById("updateBtn");
+
+  // الشريط العلوي
+  const greenHeader   = document.getElementById("greenHeader");
+  const bigValue      = document.getElementById("bigValue");
+  const bigStatusText = document.getElementById("bigStatusText");
+
+  // التنبيه
+  const statusPill  = document.getElementById("statusPill");
+  const alertBox    = document.getElementById("alertBox");
+  const alertIcon   = document.getElementById("alertIcon");
+  const alertTitle  = document.getElementById("alertTitle");
+  const alertBody   = document.getElementById("alertBody");
+  const alertActions = document.getElementById("alertActions");
+  const alertNote   = document.getElementById("alertNote");
+  const timerCircle = document.getElementById("timerCircle");
+  const okBtn       = document.getElementById("okBtn");
+  const helpBox     = document.getElementById("helpBox");
+
+  let countdown = null;
+  let timeLeft  = 60;
+
+  function resetAlert() {
+    if (countdown) {
+      clearInterval(countdown);
+      countdown = null;
+    }
+    timeLeft = 60;
+    timerCircle.textContent = "60";
+    alertActions.style.display = "none";
+    alertNote.style.display    = "none";
+    helpBox.style.display      = "none";
+    helpBox.style.background   = "transparent";
+    helpBox.style.color        = "#9ca3af";
+    helpBox.style.border       = "1px dashed rgba(148,163,184,0.8)";
+    helpBox.textContent        = "";
+  }
+
+  // عدّاد التصعيد: mode = "low" أو "high"
+  function startCountdown(mode) {
+    alertActions.style.display = "flex";
+    alertNote.style.display    = "block";
+    timeLeft = 60;
+    timerCircle.textContent = "60";
+
+    countdown = setInterval(() => {
+      timeLeft--;
+      if (timeLeft < 0) timeLeft = 0;
+      timerCircle.textContent = timeLeft;
+
+      // عند انتهاء العدّاد
+      if (timeLeft <= 0) {
+        clearInterval(countdown);
+        countdown = null;
+
+        helpBox.style.display    = "block";
+        helpBox.style.background = "#facc15";   // أصفر
+        helpBox.style.color      = "#1f2937";
+        helpBox.style.border     = "1px solid #eab308";
+
+        if (mode === "low") {
+          helpBox.textContent =
+            "يحتاج إلى جلوكوز فوراً + تم مشاركة الموقع مع الجهات المختصة.";
+        } else {
+          helpBox.textContent =
+            "يحتاج إلى أنسولين + تم مشاركة الموقع مع الجهات المختصة.";
+        }
+
+        alertTitle.textContent =
+          mode === "low"
+            ? "انخفاض شديد – تم التصعيد"
+            : "ارتفاع شديد – تم التصعيد";
+
+        alertBody.textContent =
+          "لم يتم التفاعل خلال المهلة المحددة. تم إرسال البلاغ افتراضياً للجهات المختصة مع مشاركة الموقع الجغرافي.";
+        alertNote.style.display = "none";
+      }
+    }, 1000);
+  }
+
+  // بدء المتابعة
+  startBtn.onclick = () => {
+    const name = regName.value.trim();
+    if (!name) {
+      alert("الرجاء إدخال اسم المريض.");
+      return;
+    }
+
+    pName.textContent = "المريض: " + name;
+    pId.textContent   = "الهوية: " + (regId.value.trim() || "غير مسجل");
+    pAge.textContent  = "العمر: " + (regAge.value.trim() || "—");
+
+    registerScreen.style.display = "none";
+    monitorScreen.style.display  = "block";
+  };
+
+  /* ----------------- الرسم البياني ----------------- */
+
+  const chartCtx = document.getElementById("glucoseChart").getContext("2d");
+  let labels = [];
+  let dataVals = [];
+
+  const greenBand = {
+    id: "greenBand",
+    beforeDraw(chart) {
+      const {ctx, chartArea, scales:{y}} = chart;
+      const top    = y.getPixelForValue(150);
+      const bottom = y.getPixelForValue(76);
+      ctx.save();
+      ctx.fillStyle = "rgba(74,222,128,0.18)";
+      ctx.fillRect(chartArea.left, top, chartArea.right - chartArea.left, bottom - top);
+      ctx.restore();
+    }
+  };
+
+  const glucoseChart = new Chart(chartCtx, {
+    type: "line",
+    data: {
+      labels: labels,
+      datasets: [{
+        data: dataVals,
+        borderColor: "#111827",
+        borderWidth: 2,
+        tension: 0.35,
+        pointRadius: 4,
+        pointBackgroundColor: "#22c55e"
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          min: 0,
+          max: 250,
+          ticks: { font: { size: 10 } },
+          grid: { color: "#e5e7eb" }
+        },
+        x: {
+          ticks: { font: { size: 9 } },
+          grid: { display: false }
+        }
+      },
+      plugins: {
+        legend: { display: false }
+      }
+    },
+    plugins: [greenBand]
+  });
+
+  function addReadingToChart(value) {
+    const label = new Date().toLocaleTimeString("ar-SA", {
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+    labels.push(label);
+    dataVals.push(value);
+    if (labels.length > 8) {
+      labels.shift();
+      dataVals.shift();
+    }
+    glucoseChart.update();
+  }
+
+  /* ----------------- منطق النطاقات ----------------- */
+
+  updateBtn.onclick = () => {
+    const value = parseFloat(glucoseInput.value);
+    if (isNaN(value)) {
+      alert("الرجاء إدخال قيمة رقمية صحيحة.");
+      return;
+    }
+
+    readingValue.textContent = value.toString();
+    bigValue.textContent     = value.toString();
+    addReadingToChart(value);
+
+    resetAlert();
+    alertBox.style.display = "none";
+    statusPill.style.display = "inline-flex";
+    statusPill.className = "pill";
+    statusPill.innerHTML = "";
+
+    // ≤56       → أحمر خطير منخفض + عدّاد
+    // 57–60     → أحمر منخفض (رسالة فقط)
+    // 61–75     → برتقالي آمن (بدون تنبيه)
+    // 76–150    → أخضر معتدل (بدون تنبيه)
+    // 151–198   → برتقالي آمن (بدون تنبيه)
+    // 199–350   → أحمر مرتفع (بدون عدّاد)
+    // >350      → أحمر مرتفع جدًا مع عدّاد
+
+    if (value <= 56) {
+      statusPill.classList.add("pill-red");
+      statusPill.innerHTML = '<span class="icon">🚨</span><span>انخفاض شديد</span>';
+
+      greenHeader.style.background = "#b91c1c";
+      greenHeader.style.color      = "#fee2e2";
+      bigStatusText.textContent    = "انخفاض شديد في السكر – يحتاج جلوكوز فورًا.";
+
+      alertBox.style.display = "block";
+      alertBox.className = "alert-box alert-red";
+      alertIcon.textContent = "🚨";
+      alertTitle.textContent = "الجلوكوز منخفض جدًا وخطير";
+      alertBody.textContent =
+        "السكر أقل من أو يساوي ٥٦ mg/dL – يحتاج إلى جلوكوز فوراً ومتابعة . سيتم التصعيد خلال ٦٠ ثانية إذا لم يتم التفاعل.";
+      startCountdown("low");
+    }
+    else if (value >= 57 && value <= 60) {
+      statusPill.classList.add("pill-red");
+      statusPill.innerHTML = '<span class="icon">⚠️</span><span>منخفض</span>';
+
+      greenHeader.style.background = "#f97316";
+      greenHeader.style.color      = "#fff7ed";
+      bigStatusText.textContent    = "الجلوكوز منخفض – يُنصح بتناول جلوكوز وإعادة القياس.";
+
+      alertBox.style.display = "block";
+      alertBox.className = "alert-box alert-red";
+      alertIcon.textContent = "⚠️";
+      alertTitle.textContent = "الجلوكوز منخفض";
+      alertBody.textContent =
+        "القراءة بين ٥٧ و٦٠ mg/dL – يُنصح بتناول مصدر جلوكوز وإعادة القياس خلال دقائق.";
+    }
+    else if (value >= 61 && value <= 75) {
+      statusPill.classList.add("pill-orange");
+      statusPill.innerHTML = '<span class="icon">🟠</span><span>نطاق برتقالي آمن</span>';
+
+      greenHeader.style.background = "#f97316";
+      greenHeader.style.color      = "#fff7ed";
+      bigStatusText.textContent    = "نطاق برتقالي آمن – المتابعة مستمرة بدون تنبيه.";
+    }
+    else if (value >= 76 && value <= 150) {
+      statusPill.classList.add("pill-green");
+      statusPill.innerHTML = '<span class="icon">🟢</span><span>نطاق أخضر – السكر معتدل</span>';
+
+      greenHeader.style.background = "#4ade80";
+      greenHeader.style.color      = "#064e3b";
+      bigStatusText.textContent    = "السكر ضمن النطاق المعتدل.";
+    }
+    else if (value >= 151 && value <= 198) {
+      statusPill.classList.add("pill-orange");
+      statusPill.innerHTML = '<span class="icon">🟠</span><span>نطاق برتقالي آمن – يحتاج متابعة</span>';
+
+      greenHeader.style.background = "#f97316";
+      greenHeader.style.color      = "#fff7ed";
+      bigStatusText.textContent    = "ارتفاع بسيط – يحتاج متابعة حسب خطة الطبيب.";
+    }
+    else if (value >= 199 && value <= 350) {
+      statusPill.classList.add("pill-red");
+      statusPill.innerHTML = '<span class="icon">🚨</span><span>مرتفع</span>';
+
+      greenHeader.style.background = "#b91c1c";
+      greenHeader.style.color      = "#fee2e2";
+      bigStatusText.textContent    = "الجلوكوز مرتفع – يُنصح بمراجعة الخطة العلاجية.";
+
+      alertBox.style.display = "block";
+      alertBox.className = "alert-box alert-red";
+      alertIcon.textContent = "🚨";
+      alertTitle.textContent = "الجلوكوز مرتفع";
+      alertBody.textContent =
+        "القراءة في النطاق الأحمر المرتفع (حوالي ١٩٩ – ٣٥٠ mg/dL). يُنصح بمراجعة الخطة العلاجية والتواصل مع الطبيب إذا تكررت هذه القراءات.";
+    }
+    else if (value > 350) {
+      statusPill.classList.add("pill-red");
+      statusPill.innerHTML = '<span class="icon">🚨</span><span>مرتفع جدًا وخطر</span>';
+
+      greenHeader.style.background = "#7f1d1d";
+      greenHeader.style.color      = "#fee2e2";
+      bigStatusText.textContent    = "الجلوكوز مرتفع جدًا – خطر حموضة الدم ويحتاج تدخل طبي عاجل.";
+
+      alertBox.style.display = "block";
+      alertBox.className = "alert-box alert-red";
+      alertIcon.textContent = "🚨";
+      alertTitle.textContent = "الجلوكوز مرتفع جدًا وخطر";
+      alertBody.textContent =
+        "القراءة أعلى من ٣٥٠ mg/dL – خطر الإصابة بحموضة الدم. يحتاج إلى إبرة أنسولين أو تدخل طبي عاجل. سيتم التصعيد خلال ٦٠ ثانية إذا لم يتم التفاعل.";
+      startCountdown("high");
+    }
+  };
+
+  // زر "فهمت"
+  okBtn.onclick = () => {
+    resetAlert();
+    alertBox.style.display = "none";
+  };
+</script>
+
+</body>
+</html>
